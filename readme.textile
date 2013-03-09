@@ -1,0 +1,24 @@
+h1. Hier der Versuch ein Programm zu entwickeln, das dem Goldschmied Büroarbeit abnimmt
+
+Wer sich für dieses Programm interessiert, darf sich bei unten angeschriebenen Personen melden. Mitstreiter sind allerzeit willkommen.
+
+Zielgruppe sind Goldschmiede mit eigenem Atelier.
+
+Folgende Funktionalität ist vorgesehen:
+
+* Lager-Verwaltung, Artikel und Rohmaterial
+* Kostenkalkulation
+* Schmuckstücke
+** Herstellkosten (u.a. auch Formen, welche mehrmals verwendet werden können)
+** Aufgewendete Stunden (Entwurf, Arbeit pro Stück)
+** Dokumentation (Fotos/PDF/Beschreibung)
+** Broschüre(n)
+
+Folgendes wird ausgeklammert.
+
+* Lohnabrechnung, AHV/IV, etc (Dazu gibt es andere Programme)
+
+
+
+Sponsor & Initiant: "Rolf Müller":mailto:romue@bluewin.ch, 8753 Mollis, Schweiz
+Programmierung: "Niklaus Giger":mailto:niklaus.giger@member.fsf.org, 8753 Mollis
