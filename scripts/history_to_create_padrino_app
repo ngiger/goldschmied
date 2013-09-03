@@ -1,0 +1,19 @@
+gem install padrino
+padrino g project goldschmied -d datamapper -renderer haml -stylesheet sass -adapter postgres
+cd goldschmied/
+padrino g plugin will_paginate && bundle
+padrino g admin
+bundle install
+bundle exec rake db:migrate
+bundle exec rake db:seed
+padrino g model post name:string body:text
+padrino g admin_page post
+padrino rake db:migrate
+rake routes
+padrino start
+# http://www.padrinorb.com/guides/localization 
+# dort gibt es Translate Models (ActiveRecord)
+# https://github.com/ai/r18n
+# padrino seems to use slim
+# db/seeds.rb zum Lesen der Daten
+#

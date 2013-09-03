@@ -22,3 +22,11 @@ Folgendes wird ausgeklammert.
 
 Sponsor & Initiant: "Rolf Müller":mailto:romue@bluewin.ch, 8753 Mollis, Schweiz
 Programmierung: "Niklaus Giger":mailto:niklaus.giger@member.fsf.org, 8753 Mollis
+
+Folgende Dokus sind für den Einstieg nützlich (auf Englisch)
+* "Einführung in Sinatra":http://matt.weppler.me/2013/07/19/lets-build-a-sinatra-app.html
+* "Ruby zu SQL-Datenmapping":http://datamapper.org/
+* "Spec Tests für Sinatra":http://www.sinatrarb.com/testing.html
+* "Sinatra book":http://sinatra-book.gittr.com/
+* http://compass-style.org/help/ and Sass http://sass-lang.com/tutorial.html
+* http://www.padrinorb.com/guides
