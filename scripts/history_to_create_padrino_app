@@ -1,5 +1,7 @@
 gem install padrino
-padrino g project goldschmied -d datamapper -renderer haml -stylesheet sass -adapter postgres
+# we use the defaults from padrino, but stylesheet/test have no default
+# which template should we use
+padrino g project goldschmied -d datamapper -stylesheet sass -test rspec --template sampleblog # -renderer haml -adapter postgres
 cd goldschmied/
 padrino g plugin will_paginate && bundle
 padrino g admin
