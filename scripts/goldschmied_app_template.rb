@@ -15,9 +15,15 @@ APP_INIT = <<-APP
   end
 APP
 inject_into_file 'app/app.rb', APP_INIT, :before => "#\n  end\n"
-
 inject_into_file 'Gemfile', "gem 'bcrypt-ruby', :require => 'bcrypt'\n", :after => "# Component requirements\n"
 inject_into_file 'config/boot.rb', "I18n.locale = :de\n", :after => "Padrino.before_load do\n"
+create_file ".gitignore", "tmp
+"
+
+git :init, "."
+FileUtils.rm_rf(Dir.glob('**/tmp'), :verbose => true)
+git :add, "*"
+git :commit, "-a -m 'config/boot.rb'"
 
 # Add some more stuff
 run_bundler
@@ -60,31 +66,29 @@ puts "after inject"
 rake "db:seed"
 puts "after ssed"
 
-git :add, "."
+FileUtils.rm_rf(Dir.glob('**/tmp'), :verbose => true)
+git :add, "*"
 git :commit, "-a -m 'after admin with db.seed'"
 
 puts "#{__FILE__} at #{__LINE__}"
 
 generate :model, "post title:string body:text"
 generate :controller, "posts get:index get:new post:new"
-git :add, "."
+FileUtils.rm_rf(Dir.glob('**/tmp'), :verbose => true)
+git :add, "*"
 git :commit, "-a -m 'before AddAddress'"
 generate :migration, "AddAddress plz:string" # creates db/migrate/xxx_add_email_to_user.rb
-git :add, "."
+FileUtils.rm_rf(Dir.glob('**/tmp'), :verbose => true)
+git :add, "*"
 puts "#{__FILE__} at #{__LINE__}"
 git :commit, "-a -m 'after AddAddress'"
 puts "#{__FILE__} at #{__LINE__}"
-generate :admin_page, :post
+generate :admin_page, "post"
 puts "#{__FILE__} at #{__LINE__}"
 require_dependencies 'nokogiri'
 puts "#{__FILE__} at #{__LINE__}"
-
-#  '$2a$10$xTEHikDnw3fZ/o8fgt/Zx.olqPlz.mWmoMD2u8guRvYEzoiyx5EbG'
-puts "#{__FILE__} at #{__LINE__}"
-inject_into_file "app/models/post.rb","#Hello", :after => "end\n"
-puts "#{__FILE__} at #{__LINE__}"
-
-git :add, "."
+FileUtils.rm_rf(Dir.glob('**/tmp'), :verbose => true)
+git :add, "*"
 git :commit, "-a -m 'after nokogiri'"
 
 exit 0
@@ -94,7 +98,7 @@ exit 0
 #   generate :controller, "users get:index"
 # end
 
-git :add, "."
+git :add, "*"
 git :commit, "-a -m 'second commit"
 
 x = %(
