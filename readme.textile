@@ -30,3 +30,4 @@ Folgende Dokus sind für den Einstieg nützlich (auf Englisch)
 * "Sinatra book":http://sinatra-book.gittr.com/
 * http://compass-style.org/help/ and Sass http://sass-lang.com/tutorial.html
 * http://www.padrinorb.com/guides
+* http://wrangl.com/datamapper-activerecord

@@ -93,7 +93,9 @@ git :commit, "-a -m 'after nokogiri'"
 
 exit 0
 # initializer :test, "# Example"
-
+# padrino g model User name:string age:integer email:string
+# padrino g migration AddFieldsToUsers last_login:datetime crypted_password:string
+# padrino g migration RemoveFieldsFromUsers password:string ip_address:string
 # app :testapp do
 #   generate :controller, "users get:index"
 # end
