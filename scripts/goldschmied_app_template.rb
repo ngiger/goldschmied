@@ -27,6 +27,7 @@ inject_into_file 'app/app.rb', APP_INIT, :before => "#\n  end\n"
 inject_into_file 'Gemfile', "gem 'bcrypt-ruby', :require => 'bcrypt'\n", :after => "# Component requirements\n"
 gsub_file('config/boot.rb', /^.*I18n.default_locale = :en\n/, "I18n.default_locale = :de\n")
 inject_into_file 'config/boot.rb', "  I18n.locale = :de\n", :after => "Padrino.before_load do\n"
+remove_file ".gitignore"
 create_file ".gitignore", "tmp
 "
 
@@ -39,6 +40,7 @@ gitCommit(__LINE__, 'generate :admin')
 # bundle install
 rake "dm:migrate"
 gitCommit(__LINE__, 'dm:migrate')
+if false
 remove_file "db/seeds.rb"
 create_file "db/seeds.rb", %(# db/seeds.rb
 email     = "niklaus.giger@hispeed.ch"
@@ -63,14 +65,66 @@ if account.valid?
 else
   shell.say "Sorry but some thing went worng!"
   shell.say ""
-  account.errors.full_messages.each { |m| shell.say "   - \#{m}" }
+  account.errors.full_messages.each { |m| shell.say "    \#{m}" }
 end
 
 shell.say ""
 )
 gitCommit(__LINE__, 'db/seeds.rb')
+end
 rake "db:seed"
 gitCommit(__LINE__, 'db:seeds')
+
+generate :model, "contacttype type:integer language:string value:string"
+gitCommit(__LINE__, 'generate :model, "contactinfo')
+rake 'dm:auto:migrate'
+gitCommit(__LINE__, 'generate :model, "contactinfo')
+
+# Update Post Model with Validations and Associations
+remove_file 'models/contacttype.rb'
+create_file 'models/contacttype.rb',  %(
+class Contacttype
+  include DataMapper::Resource
+  property :id,         Serial
+  property :type,       Enum[ :internet, :email, :fax, :mobile, :phone], :default => :internet, :unique_index => :uniqe_contact_type
+  property :language,   String, :length =>  3, :unique_index => :uniqe_contact_type, :auto_validation => true, :default => 'de' # ISO-Code
+  property :value,      String, :length => 32, :default => 'E-Mail'
+end
+)
+gitCommit(__LINE__, 'db:seeds')
+generate :controller, 'contacttypes get:index get:new post:create'
+gitCommit(__LINE__, 'db:seeds')
+POST_INDEX_ROUTE = <<-POST
+      @contacttypes = Contacttype.all(:order => [:type.desc])
+      render 'contacttypes/index'
+POST
+POST_SHOW_ROUTE = <<-POST
+      @contacttypes = Contacttype.find_by_id(params[:id])
+      render 'contacttypes/show'
+POST
+gitCommit(__LINE__, 'db:seeds')
+inject_into_file 'app/controllers/contacttypes.rb', POST_INDEX_ROUTE, :after => "get :index do\n"
+gitCommit(__LINE__, 'db:seeds')
+inject_into_file 'app/controllers/contacttypes.rb', POST_SHOW_ROUTE, :after => "get :show do\n"
+gitCommit(__LINE__, 'db:seeds')
+inject_into_file 'app/controllers/contacttypes.rb', ", :with => :id", :after => "get :show" # doesn't run?
+
+create_file 'app/views/contacttypes/index.haml', %(<h2>Alle Kontakttypen</h2>
+<h2>Alle Kontakttypen</h2>
+
+- @title = "Welcome"
+
+#contacttypes= partial 'contacttypes/contacttype', :collection => @contacttypes
+)
+
+# padrino g controller Admin -a my_sub_app
+gitCommit(__LINE__, 'generate :controller, "contactinfo')
+generate :admin_page, 'contacttype' # simple interface to create/drop stuff via admin/contacttype
+
+rake 'dm:auto:migrate'
+
+
+exit 0
 
 # appending timestamps to contact model
 generate :model, "contact adrNumIndex:string name:string vorname:string isPerson:boolean titel:string bild1:string bild2:string"
@@ -85,14 +139,14 @@ inject_into_file 'models/contact.rb',  "# Timestamp info
   property :updated_on,   Date
 ", :after => "property :bild2, String\n"                 
 
-rake 'dm:migrate'
+rake 'dm:auto:migrate'
 gitCommit(__LINE__, 'dm:migrate')
 
 # Generating contacts controller
 generate :controller, "contacts get:index get:show"
 gsub_file('app/controllers/contacts.rb', /^\s+\#\s+.*\n/,'')
 POST_INDEX_ROUTE = <<-POST
-      @contacts = Contact.all(:order => 'created_at desc')
+      @contacts = Contact.all(:order => [:adrNumIndex.desc])
       render 'contacts/index'
 POST
 POST_SHOW_ROUTE = <<-POST
@@ -107,13 +161,15 @@ inject_into_file 'app/controllers/contacts.rb', ", :with => :id", :after => "get
 gitCommit(__LINE__, 'inject_into_file app/controllers/contacts.rb')
 generate :admin_page, "contact"
 
+gitCommit(__LINE__, 'generated some files')
+#generate :migration, "AddContactToContactinfo contact_id:integer"
 # Migrations to add account to contact
 gitCommit(__LINE__, 'generate :admin_page, "contact"')
 generate :migration, "AddAccountToContact account_id:integer"
 
 # Update Contact Model with Validations and Associations
 POST_MODEL = <<-POST
-  belongs_to :account
+#  belongs_to :account
 #  validates_presence_of :name
 #  validates_presence_of :vorname
   validates_presence_of :adrNumIndex
@@ -133,7 +189,7 @@ remove_file  'admin/views/base/index.haml'
 create_file( 'admin/views/base/index.haml', ADMIN_VIEW_INDEX)
 
 # Update admin app controller for contact
-# inject_into_file 'admin/controllers/people.rb',"    @contact.account = current_account\n",:after => "new(params[:contact])\n"
+# inject_into_file 'admin/controllers/contacts.rb',"    @contact.account = current_account\n",:after => "new(params[:contact])\n"
 # gitCommit(__LINE__, 'msg')
 
 # Include RSS Feed
@@ -144,17 +200,17 @@ POST_INDEX = <<-POST
 - @title = "Willkommen"
 
 - content_for :include do
-  = feed_tag(:rss, url(:people, :index, :format => :rss),:title => "RSS")
-  = feed_tag(:atom, url(:people, :index, :format => :atom),:title => "ATOM")
+  = feed_tag(:rss, url(:contacts, :index, :format => :rss),:title => "RSS")
+  = feed_tag(:atom, url(:contacts, :index, :format => :atom),:title => "ATOM")
 
-#people= partial 'people/contact', :collection => @people
+#contacts= partial 'contacts/contact', :collection => @contacts
 POST
-create_file 'app/views/people/index.haml', POST_INDEX
+create_file 'app/views/contacts/index.haml', POST_INDEX
 
 # Create _contact.haml
 POST_PARTIAL = <<-POST
 .contact
-  .vorname= link_to contact.vorname, url_for(:people, :show, :id => contact)
+  .vorname= link_to contact.vorname, url_for(:contacts, :show, :id => contact)
   .date= time_ago_in_words(contact.created_at || Time.now) + ' ago'
   .vorname= simple_format(@contact.vorname)
   .adrNumIndex= simple_format(@contact.adrNumIndex)
@@ -163,7 +219,7 @@ POST_PARTIAL = <<-POST
   .bild1= @contact.bild1
   .bild2= @contact.bild2
 POST
-create_file 'app/views/people/_contact.haml', POST_PARTIAL
+create_file 'app/views/contacts/_contact.haml', POST_PARTIAL
 
 # Create show.haml
 POST_SHOW = <<-POST
@@ -178,7 +234,7 @@ POST_SHOW = <<-POST
     .titel= @contact.titel
     .bild1= @contact.bild1
     .bild2= @contact.bild2
-%p= link_to 'Zeige alle Contacten', url_for(:people, :index)
+%p= link_to 'Zeige alle Contacten', url_for(:contacts, :index)
 POST
 create_file 'app/views/contacts/show.haml', POST_SHOW
 
@@ -225,8 +281,8 @@ create_file 'app/views/layouts/application.haml', APPLICATION
 get 'https://github.com/padrino/sample_blog/raw/master/public/stylesheets/reset.css', 'public/stylesheets/reset.css'
 get "https://github.com/padrino/sample_blog/raw/master/app/stylesheets/application.sass", 'app/stylesheets/application.sass'
 
-gitCommit(__LINE__, 'generated some files')
 generate :model, "contactinfo type:integer value_1:string value_2:string"
+gitCommit(__LINE__, 'generated some files')
 #generate :migration, "AddContactToContactinfo contact_id:integer"
 gitCommit(__LINE__, 'generate :model, "contactinfo')
 
@@ -302,37 +358,6 @@ inject_into_file 'models/contact.rb', %(
 rake 'dm:migrate'
                 
 gitCommit(__LINE__, 'm:migrate')
-
-remove_file "db/seeds.rb"
-create_file "db/seeds.rb", %(# db/seeds.rb
-email     = "niklaus.giger@hispeed.ch"
-password  = "admin"
-
-shell.say ""
-
-account = Account.create(:email => email, 
-                         :name => "Niklaus", 
-                         :surname => "Giger", 
-                         :password => password, 
-                         :password_confirmation => password, 
-                         :role => "admin")
-
-if account.valid?
-  shell.say "================================================================="
-  shell.say "Account has been successfully created, now you can login with:"
-  shell.say "================================================================="
-  shell.say "   email: \#{email}"
-  shell.say "   password: \#{password}"
-  shell.say "================================================================="
-else
-  shell.say "Sorry but some thing went worng!"
-  shell.say ""
-  account.errors.full_messages.each { |m| shell.say "   - \#{m}" }
-end
-
-shell.say ""
-)
-
 rake 'dm:auto:upgrade'
 
 puts 'done'
