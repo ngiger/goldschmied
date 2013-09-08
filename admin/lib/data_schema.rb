@@ -12,7 +12,7 @@ module Goldschmied
   ContactTypes = [ :internet, :email, :fax, :mobile, :phone ]
 end
 
-class Client
+class Person
   include DataMapper::Resource
   has n, :addresses,    :through => Resource
   has n, :contactInfos, :through => Resource
@@ -49,7 +49,7 @@ class ContactInfo
   property :created_on,   Date
   property :updated_at,   DateTime
   property :updated_on,   Date
-  belongs_to              :client
+  belongs_to              :person
   property :type,       Enum[ :internet, :email, :fax, :mobile, :phone], :default => :internet
   property :value_1,    String, :length =>  3
   property :value_2,    String, :length => 32
@@ -67,7 +67,7 @@ end
 class Address
   include DataMapper::Resource
   has       1,            :addressType
-  belongs_to              :client
+  belongs_to              :person
 
   property :id,           Serial
   property :created_at,   DateTime

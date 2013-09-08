@@ -6,16 +6,17 @@ $: << File.join(File.dirname(File.dirname(__FILE__)), 'lib')
 require 'data_schema'
 require 'dm-types'
 
-$inMemory = false
-unless $inMemory
-  puts "using development.db"
-#  DataMapper::setup(:default, File.join('sqlite3://', Dir.pwd, 'tmp/development.db'))
-  DataMapper::setup(:default, File.join('sqlite3:///tmp/development.db'))
-else
-  DataMapper.setup(:default, 'sqlite::memory:')
-end
-# A Postgres connection:
-# DataMapper.setup(:default, 'postgres://user:password@hostname/database')
+address_datei = '/opt/RolfMueller/export/Address01.csv'
+
+inMemory   = DataMapper::setup(:default, File.join("sqlite3://#{Dir.pwd}/development.db"))
+pp inMemory.select("PRAGMA synchronous = 0")
+pp inMemory.select("PRAGMA journal_mode = off")
+# pp inMemory.select("PRAGME page cache = 102400")
+#  -- Turn the page cache up so it is large enough to hold the whole
+#     database in the cache.
+#  -- Turn the journal file off.
+# 
+#  -- Turn synchronous off.
 
 require  'dm-migrations'
 DataMapper.finalize
@@ -53,15 +54,14 @@ addAdressType(:delivery,  'Lieferadresse')
 addAdressType(:other,     'Weitere Adresse')
 puts "Created #{AddressType.all.size} addressTypes"
 
-address_datei = '/opt/RolfMueller/export/Address01.csv'
 count = 0
 nrSkips= 0
 f = File.new(address_datei)
 f.set_encoding(Encoding::ISO_8859_15, Encoding::UTF_8)
 
-def addContactType(row, client, type, column)
+def addContactType(row, person, type, column)
   unless row[column].eql?('') 
-    ContactInfo.create(:client_id => client.id, :type =>type, :value_1 => :row[column], :value_2 => :row[column+1])
+    ContactInfo.create(:person_id => person.id, :type =>type, :value_1 => :row[column], :value_2 => :row[column+1])
   end
 end
 
@@ -76,27 +76,27 @@ f.readlines.each {
         nrSkips += 1
         next
       end
-      client = Client.new  
-      client.adrNumIndex   = row[0].strip
+      person = Person.new       
+      person.adrNumIndex   = row[0].strip
       unless row[1].eql?('') # Firma
-        client.isPerson      = false
-        client.vorname       = row[1] 
-        client.name          = row[2]
+        person.isPerson      = false
+        person.vorname       = row[1] 
+        person.name          = row[2]
         if row[4] != '' or row[5] != ''
           puts "Bin auf Firma mit Name/Vorname nicht vorbereitet #{row}"
 #          break
         end
       else
-        client.isPerson      = true
-        client.vorname       = row[4] 
-        client.name          = row[5]
+        person.isPerson      = true
+        person.vorname       = row[4] 
+        person.name          = row[5]
       end      
-      client.bild1 = row[55]
-      client.bild2 = row[56]
-      client.save
+      person.bild1 = row[55]
+      person.bild2 = row[56]
+      person.save
       if row[6] # 
         address = Address.new
-        address.client_id     = client.id
+        address.person_id     = person.id
         address.strasse = row[6]
         address.ortzusatz = row[7]
         address.staat = row[8]
@@ -111,7 +111,7 @@ f.readlines.each {
 
       unless row[11].eql?('') # 
         address = Address.new
-        address.client_id     = client.id
+        address.person_id     = person.id
         address.text = row[11]
         address.strasse = row[12]
         address.po_box = row[13]
@@ -128,7 +128,7 @@ f.readlines.each {
 
       unless row[18].eql?('') # 
         address = Address.new
-        address.client_id     = client.id
+        address.person_id     = person.id
         address.text = row[18]
 # address.adr02_firma = row[19]
 # address.adr02firmzusatz = row[20]
@@ -148,31 +148,31 @@ f.readlines.each {
         # pp address; puts "Address neu gespeichert";  break
       end
 
-      addContactType(row, client, :phone, 30)
-      addContactType(row, client, :phone, 32)
-      addContactType(row, client, :phone, 34)
-      addContactType(row, client, :phone, 36)
-      addContactType(row, client, :fax, 38)
-      addContactType(row, client, :fax, 53)
-      addContactType(row, client, :mobile, 40)
-      addContactType(row, client, :mobile, 42)
-      addContactType(row, client, :email, 44)
-      addContactType(row, client, :email, 46)
-      addContactType(row, client, :email, 57)
+      addContactType(row, person, :phone, 30)
+      addContactType(row, person, :phone, 32)
+      addContactType(row, person, :phone, 34)
+      addContactType(row, person, :phone, 36)
+      addContactType(row, person, :fax, 38)
+      addContactType(row, person, :fax, 53)
+      addContactType(row, person, :mobile, 40)
+      addContactType(row, person, :mobile, 42)
+      addContactType(row, person, :email, 44)
+      addContactType(row, person, :email, 46)
+      addContactType(row, person, :email, 57)
       unless row[48].eql?('') 
-        ContactInfo.create(:client_id => client.id, :type =>:internet, :value_1 => '', :value_2 => :row[48])
+        ContactInfo.create(:person_id => person.id, :type =>:internet, :value_1 => '', :value_2 => :row[48])
       end
       unless row[49].eql?('') 
-        ContactInfo.create(:client_id => client.id, :type =>:internet, :value_1 => '', :value_2 => :row[49])
+        ContactInfo.create(:person_id => person.id, :type =>:internet, :value_1 => '', :value_2 => :row[49])
       end
 
 # address.adrnum = row[50]
 # address.code = row[51]
 # address.sortier = row[52]
 
-      unless client.save
+      unless person.save
         puts "Saving of row #{row} failed!"
-        client.errors.each do |error|
+        person.errors.each do |error|
             #print the name of the invalid attribute
             puts error.attribute_name
         end
@@ -189,6 +189,6 @@ f.readlines.each {
     end
 }
 puts "Skip #{nrSkips} of #{count} lines. Erfasste 
-* #{sprintf('%4d', Client.all.size)} Kunden
+* #{sprintf('%4d', Person.all.size)} Kunden
 * #{sprintf('%4d', Address.all.size)} Adressen und 
 * #{sprintf('%4d', ContactInfo.all.size)} Kontakt-Informationen"

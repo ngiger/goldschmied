@@ -31,3 +31,22 @@ Folgende Dokus sind für den Einstieg nützlich (auf Englisch)
 * http://compass-style.org/help/ and Sass http://sass-lang.com/tutorial.html
 * http://www.padrinorb.com/guides
 * http://wrangl.com/datamapper-activerecord
+
+
+h1. Entwicklung
+
+Stand am 8.09.2013. Folgendes läuft:
+
+bq. #!/bin/bash -v
+export where=/opt/src/goldschmied
+cd ${where}
+rm -rf ${where}/my_project
+ls -l  ${where}/scripts/goldschmied_app_template.rb
+echo 'Y' | time padrino g project my_project --template ${where}/scripts/goldschmied_app_template.rb 2>&1 | tee regen.log # Ca 25 Sekunden
+cd ${where}/my_project 
+../import_contacts (ca 7 Sekunden)
+
+Folgende Probleme haben wir
+- Adressen sind sind ein Mischmasch von vielem (Firmen, Rechnungsaddressn, Materiallager)
+- Importe
+- Display sehr mangelhaft
