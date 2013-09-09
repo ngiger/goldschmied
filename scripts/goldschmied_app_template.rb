@@ -25,7 +25,13 @@ APP_INIT = <<-APP
   end
 APP
 inject_into_file 'app/app.rb', APP_INIT, :before => "#\n  end\n"
-inject_into_file 'Gemfile', "gem 'bcrypt-ruby', :require => 'bcrypt'\n", :after => "# Component requirements\n"
+inject_into_file 'Gemfile', "gem 'bcrypt-ruby', :require => 'bcrypt'
+gem 'dm-migrations'
+gem 'dm-validations'
+gem 'dm-timestamps'
+gem 'dm-constraints'
+gem 'dm-aggregates'
+", :after => "# Component requirements\n"
 gsub_file('config/boot.rb', /^.*I18n.default_locale = :en\n/, "I18n.default_locale = :de\n")
 inject_into_file 'config/boot.rb', "  I18n.locale = :de\n", :after => "Padrino.before_load do\n"
 remove_file ".gitignore"
