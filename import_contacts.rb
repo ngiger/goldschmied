@@ -4,6 +4,7 @@ require 'csv'
 require 'pp'
 require 'dm-types'
 require 'dm-validations'
+require 'dm-timestamps'
 
 models = Dir.glob('models/*.rb')
 models.each{ |model| require File.expand_path(model) }
@@ -11,43 +12,43 @@ address_datei = '/opt/RolfMueller/export/Address01.csv'
 file = Dir.glob("#{Dir.pwd}/db/*_development.db")[0]
 inMemory   = DataMapper::setup(:default, File.join("sqlite3://#{file}"))
 inMemory.select("PRAGMA synchronous = 0")
-inMemory.select("PRAGME page cache = 102400")
+# inMemory.select("PRAGMA page cache = 102400")
 
 require  'dm-migrations'
 DataMapper.finalize
-# DataMapper.auto_upgrade
-DataMapper.auto_upgrade! # cleans tables
+DataMapper.auto_upgrade! # leaves existing tables
+# DataMapper.auto_migrate! # cleans tables
 $defaultLanguage = 'de'
-def addContactType(type, value, language = $defaultLanguage)
+def addContacttype(type, value, language = $defaultLanguage)
   begin
-  contact_t = ContactType.create(:type => type, :value => value, :language => language)
+  contact_t = Contacttype.create(:type => type, :value => value, :language => language)
   rescue  => e
     puts "rescueing for contacttype #{type} #{value}"
     puts "Error was #{e.inspect}"
   end
 end
-addContactType(:internet,     'Internet')
-addContactType(:email,        'E-Mail')
-addContactType(:fax,          'Fax')
-addContactType(:mobile,       'Handy')
-addContactType(:phone,        'Telefon')
-pp ContactType.all
-puts "Created #{ContactType.all.size} contacttypes"
+addContacttype(:internet,     'Internet')
+addContacttype(:email,        'E-Mail')
+addContacttype(:fax,          'Fax')
+addContacttype(:mobile,       'Handy')
+addContacttype(:phone,        'Telefon')
+pp Contacttype.all
+puts "Created #{Contacttype.all.size} contacttypes"
 
-exit 1 unless ContactType.all.size == 5
+exit 1 unless Contacttype.all.size == 5
 def addAdresstype(type, value, language=$defaultLanguage)
-  AddressType.create(:type => type, :value => value, :language => language)
+  Addresstype.create(:type => type, :value => value, :language => language)
   rescue  => e
-    puts "rescueing for AddressType #{type} #{value}"
+    puts "rescueing for Addresstype #{type} #{value}"
     puts "Error was #{e.inspect}"
 end
 addAdresstype(:main,      'Hauptadresse')
 addAdresstype(:bill_to,   'Rechnungsadresse')
 addAdresstype(:delivery,  'Lieferadresse')
 addAdresstype(:other,     'Weitere Adresse')
-pp AddressType.all
-puts "Created #{AddressType.all.size} AddressTypes"
-exit 1 unless AddressType.all.size == 4
+pp Addresstype.all
+puts "Created #{Addresstype.all.size} Addresstypes"
+exit 1 unless Addresstype.all.size == 4
 
 
 count = 0
@@ -55,9 +56,14 @@ nrSkips= 0
 f = File.new(address_datei)
 f.set_encoding(Encoding::ISO_8859_15, Encoding::UTF_8)
 
-def addContactType(row, person, type, column)
+def addContacttype(row, person, type, column)
   unless row[column].eql?('') 
-    ContactInfo.create(:contact_id => person.id, :type =>type, :value_1 => :row[column], :value_2 => :row[column+1])
+    info = ContactInfo.create(:contact_id => person.id, :type =>type, :value_1 => :row[column], :value_2 => :row[column+1])
+    unless info and info.save
+      puts "#{__LINE__}: Konnte ContactInfo für #{person.id} #{person.adrNumIndex} #{type} '#{row[column]}' '#{row[column+1]}' nicht speichern! \n#{info.inspect}"
+      info.errors.each do |e| puts e end
+      exit 2
+    end
   end
 end
 
@@ -93,7 +99,7 @@ f.readlines.each {
         next
       end
       person = Contact.new  
-      person.account_id    = 1
+#      person.account_id    = 1
       person.adrNumIndex   = row[0].strip
       unless row[1].eql?('') # Firma
         person.isPerson      = false
@@ -138,17 +144,17 @@ f.readlines.each {
 # address.adr02_name = row[23]
       end
 
-      addContactType(row, person, :phone, 30)
-      addContactType(row, person, :phone, 32)
-      addContactType(row, person, :phone, 34)
-      addContactType(row, person, :phone, 36)
-      addContactType(row, person, :fax, 38)
-      addContactType(row, person, :fax, 53)
-      addContactType(row, person, :mobile, 40)
-      addContactType(row, person, :mobile, 42)
-      addContactType(row, person, :email, 44)
-      addContactType(row, person, :email, 46)
-      addContactType(row, person, :email, 57)
+      addContacttype(row, person, :phone, 30)
+      addContacttype(row, person, :phone, 32)
+      addContacttype(row, person, :phone, 34)
+      addContacttype(row, person, :phone, 36)
+      addContacttype(row, person, :fax, 38)
+      addContacttype(row, person, :fax, 53)
+      addContacttype(row, person, :mobile, 40)
+      addContacttype(row, person, :mobile, 42)
+      addContacttype(row, person, :email, 44)
+      addContacttype(row, person, :email, 46)
+      addContacttype(row, person, :email, 57)
       unless row[48].eql?('') 
         ContactInfo.create(:contact_id => person.id, :type =>:internet, :value_1 => '', :value_2 => :row[48])
       end

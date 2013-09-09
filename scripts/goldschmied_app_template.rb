@@ -4,6 +4,7 @@ $root = File.dirname(File.dirname(__FILE__))
 project :test => :shoulda, :renderer => :haml, :stylesheet => :sass, :script => :jquery, :orm => :datamapper
 generate :plugin, 'will_paginate'
 
+
 git :init, "."
 
 def gitCommit(line, msg)
@@ -38,9 +39,9 @@ generate :admin
 gitCommit(__LINE__, 'generate :admin')
 
 # bundle install
-rake "dm:migrate"
-gitCommit(__LINE__, 'dm:migrate')
-if false
+rake 'dm:auto:upgrade'
+gitCommit(__LINE__, 'dm:auto:upgrade')
+if true
 remove_file "db/seeds.rb"
 create_file "db/seeds.rb", %(# db/seeds.rb
 email     = "niklaus.giger@hispeed.ch"
@@ -75,56 +76,63 @@ end
 rake "db:seed"
 gitCommit(__LINE__, 'db:seeds')
 
-generate :model, "contacttype type:integer language:string value:string"
-gitCommit(__LINE__, 'generate :model, "contactinfo')
-rake 'dm:auto:migrate'
-gitCommit(__LINE__, 'generate :model, "contactinfo')
+#--------------------------------------------------------------------------------
+# Erfassen via Hilfstabellen, im Moment nur Adresstype und Contacttype
+#--------------------------------------------------------------------------------
+def addHelperTable(name, enumvalues)
+  gitCommit(__LINE__, 'msg')
+  generate :model, "#{name} type:integer language:string value:string"
+  gitCommit(__LINE__, 'generate :model, "#{name}info')
+  gitCommit(__LINE__, 'generate :model, "#{name}info')
+  rake 'dm:auto:upgrade'
 
-# Update Post Model with Validations and Associations
-remove_file 'models/contacttype.rb'
-create_file 'models/contacttype.rb',  %(
-class Contacttype
-  include DataMapper::Resource
-  property :id,         Serial
-  property :type,       Enum[ :internet, :email, :fax, :mobile, :phone], :default => :internet, :unique_index => :uniqe_contact_type
-  property :language,   String, :length =>  3, :unique_index => :uniqe_contact_type, :auto_validation => true, :default => 'de' # ISO-Code
-  property :value,      String, :length => 32, :default => 'E-Mail'
-end
+  # Update Post Model with Validations and Associations
+  remove_file "models/#{name}.rb"
+  create_file "models/#{name}.rb",  %(
+  class #{name.capitalize}
+    include DataMapper::Resource
+    property :id,         Serial
+    property :type,       Enum[ #{enumvalues} ], :unique_index => :unique_type
+    property :language,   String, :length =>  3, :unique_index => :unique_type, :auto_validation => true, :default => 'de' # ISO-Code
+    property :value,      String, :length => 32, :default => 'dummy'
+  end
+  )
+  gitCommit(__LINE__, 'db:seeds')
+  generate :controller, "#{name}s get:index get:new post:create"
+  rake 'dm:auto:upgrade'
+  gitCommit(__LINE__, 'db:seeds')
+  inject_into_file "app/controllers/#{name}s.rb", %(
+        @#{name}s = #{name.capitalize}.all(:order => [:type.desc])
+        render '#{name}s/index'
+        ), :after => "get :index do\n"
+  gitCommit(__LINE__, "db:seeds")
+  inject_into_file "app/controllers/#{name}s.rb", %(
+        @#{name}s = #{name.capitalize}.find_by_id(params[:id])
+        render '#{name}s/show'
+        ), :after => "get :show do\n"
+  gitCommit(__LINE__, "db:seeds")
+  inject_into_file "app/controllers/#{name}s.rb", ", :with => :id", :after => "get :show" # doesn"t run?
+
+  create_file "app/views/#{name}s/index.haml", %(
+%h2= "Alle \#{@#{name}s.size} erfassten #{name} Daten"
+
+%table
+  %tbody
+    - @#{name}s.all.each do |row|
+      %tr
+        %td= row.language
+        %td= row.type
+        %td= row.value
+
+Administratoren koennen die Eintraege bearbeiten via
+= link_to 'Verwaltung', '/admin/#{name}s'
 )
-gitCommit(__LINE__, 'db:seeds')
-generate :controller, 'contacttypes get:index get:new post:create'
-gitCommit(__LINE__, 'db:seeds')
-POST_INDEX_ROUTE = <<-POST
-      @contacttypes = Contacttype.all(:order => [:type.desc])
-      render 'contacttypes/index'
-POST
-POST_SHOW_ROUTE = <<-POST
-      @contacttypes = Contacttype.find_by_id(params[:id])
-      render 'contacttypes/show'
-POST
-gitCommit(__LINE__, 'db:seeds')
-inject_into_file 'app/controllers/contacttypes.rb', POST_INDEX_ROUTE, :after => "get :index do\n"
-gitCommit(__LINE__, 'db:seeds')
-inject_into_file 'app/controllers/contacttypes.rb', POST_SHOW_ROUTE, :after => "get :show do\n"
-gitCommit(__LINE__, 'db:seeds')
-inject_into_file 'app/controllers/contacttypes.rb', ", :with => :id", :after => "get :show" # doesn't run?
+  generate :admin_page, name
+  rake 'dm:auto:upgrade'
+end # erfassen hilfs tabelle
 
-create_file 'app/views/contacttypes/index.haml', %(<h2>Alle Kontakttypen</h2>
-<h2>Alle Kontakttypen</h2>
-
-- @title = "Welcome"
-
-#contacttypes= partial 'contacttypes/contacttype', :collection => @contacttypes
-)
-
-# padrino g controller Admin -a my_sub_app
-gitCommit(__LINE__, 'generate :controller, "contactinfo')
-generate :admin_page, 'contacttype' # simple interface to create/drop stuff via admin/contacttype
-
-rake 'dm:auto:migrate'
-
-
-exit 0
+addHelperTable('contacttype', ':internet, :email, :fax, :mobile, :phone')
+addHelperTable('addresstype', ':main, :bill_to, :delivery, :other')
 
 # appending timestamps to contact model
 generate :model, "contact adrNumIndex:string name:string vorname:string isPerson:boolean titel:string bild1:string bild2:string"
@@ -139,8 +147,8 @@ inject_into_file 'models/contact.rb',  "# Timestamp info
   property :updated_on,   Date
 ", :after => "property :bild2, String\n"                 
 
-rake 'dm:auto:migrate'
-gitCommit(__LINE__, 'dm:migrate')
+rake 'dm:auto:upgrade'
+gitCommit(__LINE__, 'dm:auto:upgrade')
 
 # Generating contacts controller
 generate :controller, "contacts get:index get:show"
@@ -160,12 +168,7 @@ inject_into_file 'app/controllers/contacts.rb', ", :with => :id", :after => "get
 # Generate admin_page for contact
 gitCommit(__LINE__, 'inject_into_file app/controllers/contacts.rb')
 generate :admin_page, "contact"
-
 gitCommit(__LINE__, 'generated some files')
-#generate :migration, "AddContactToContactinfo contact_id:integer"
-# Migrations to add account to contact
-gitCommit(__LINE__, 'generate :admin_page, "contact"')
-generate :migration, "AddAccountToContact account_id:integer"
 
 # Update Contact Model with Validations and Associations
 POST_MODEL = <<-POST
@@ -175,8 +178,8 @@ POST_MODEL = <<-POST
   validates_presence_of :adrNumIndex
 POST
 inject_into_file 'models/contact.rb', POST_MODEL, :after => "DataMapper::Resource\n"
-rake 'dm:migrate'
-gitCommit(__LINE__, 'dm:migrate')
+rake 'dm:auto:upgrade'
+gitCommit(__LINE__, 'dm:auto:upgrade')
 
 ADMIN_VIEW_INDEX = %(
 .base-text
@@ -190,10 +193,11 @@ create_file( 'admin/views/base/index.haml', ADMIN_VIEW_INDEX)
 
 # Update admin app controller for contact
 # inject_into_file 'admin/controllers/contacts.rb',"    @contact.account = current_account\n",:after => "new(params[:contact])\n"
-# gitCommit(__LINE__, 'msg')
+gitCommit(__LINE__, 'msg')
 
 # Include RSS Feed
 inject_into_file 'app/controllers/contacts.rb', ", :provides => [:html, :rss, :atom]", :after => "get :index"
+gitCommit(__LINE__, 'msg')
 
 # Create index.haml
 POST_INDEX = <<-POST
@@ -206,6 +210,7 @@ POST_INDEX = <<-POST
 #contacts= partial 'contacts/contact', :collection => @contacts
 POST
 create_file 'app/views/contacts/index.haml', POST_INDEX
+gitCommit(__LINE__, 'msg')
 
 # Create _contact.haml
 POST_PARTIAL = <<-POST
@@ -220,6 +225,7 @@ POST_PARTIAL = <<-POST
   .bild2= @contact.bild2
 POST
 create_file 'app/views/contacts/_contact.haml', POST_PARTIAL
+gitCommit(__LINE__, 'msg')
 
 # Create show.haml
 POST_SHOW = <<-POST
@@ -237,6 +243,7 @@ POST_SHOW = <<-POST
 %p= link_to 'Zeige alle Contacten', url_for(:contacts, :index)
 POST
 create_file 'app/views/contacts/show.haml', POST_SHOW
+gitCommit(__LINE__, 'msg')
 
 APPLICATION = <<-LAYOUT
 !!! Strict
@@ -277,67 +284,18 @@ APPLICATION = <<-LAYOUT
       Copyright (c) 2013 Niklaus Giger <niklaus.giger@member.fsf.org>
 LAYOUT
 create_file 'app/views/layouts/application.haml', APPLICATION
+gitCommit(__LINE__, 'msg')
 
 get 'https://github.com/padrino/sample_blog/raw/master/public/stylesheets/reset.css', 'public/stylesheets/reset.css'
 get "https://github.com/padrino/sample_blog/raw/master/app/stylesheets/application.sass", 'app/stylesheets/application.sass'
+gitCommit(__LINE__, 'msg')
 
-generate :model, "contactinfo type:integer value_1:string value_2:string"
-gitCommit(__LINE__, 'generated some files')
-#generate :migration, "AddContactToContactinfo contact_id:integer"
-gitCommit(__LINE__, 'generate :model, "contactinfo')
-
-# Update Post Model with Validations and Associations
-remove_file 'models/contacttype.rb'
-create_file 'models/contacttype.rb',  %(
-class ContactType
-  include DataMapper::Resource
-  property :id,         Serial
-  property :type,       Enum[ :internet, :email, :fax, :mobile, :phone], :default => :internet, :unique_index => :uniqe_contact_type
-  property :language,   String, :length =>  3, :unique_index => :uniqe_contact_type, :auto_validation => true, :default => 'de' # ISO-Code
-  property :value,      String, :length => 32, :default => 'E-Mail'
-end
-)
-
-remove_file 'models/contactinfo.rb'
-create_file 'models/contactinfo.rb',  %(
-class ContactInfo
-  include DataMapper::Resource
-  property :id,         Serial
-  property :created_at,   DateTime
-  property :created_on,   Date
-  property :updated_at,   DateTime
-  property :updated_on,   Date
-  belongs_to              :contact
-  property :type,       Enum[ :internet, :email, :fax, :mobile, :phone], :default => :internet
-  property :value_1,    String, :length =>  3
-  property :value_2,    String, :length => 32
-end
-)
-
-rake 'dm:migrate'
-gitCommit(__LINE__, 'dm:migrat')
-generate :model, "addresstype type:integer language:string value:string"
 generate :model, "address type:integer text:string po_box:string strasse:string ortzusatz:string staat:string plz:string ort:string"
-generate :migration, "AddContactToAddress contact_id:integer"
 
-gitCommit(__LINE__, 'generate :migration, "AddContactToAddress')
-remove_file('models/addresstype.rb')
-create_file('models/addresstype.rb', %(
-# main, bill_to, delivery, other
-class AddressType
-  include DataMapper::Resource
-  property :id,         Serial
-  property :type,       Enum[ :main, :bill_to, :delivery, :other ], :default => :main, :unique_index => :uniqe_address_type
-  property :language,   String, :length =>  3, :unique_index => :uniqe_address_type, :auto_validation => true, :default => 'de' # ISO-Code
-  property :value,      String, :length => 32, :default => 'Hauptadresse'
-end
-
-))
-# Update Post Model with Validations and Associations
 inject_into_file 'models/address.rb', %(
   belongs_to :contact
-  has       1,            :addressType, :through => Resource
-#  validates_presence_of :type
+#  has       1,            :addresstype, :through => Resource
+  validates_presence_of :type
 #  validates_presence_of :ort
   # Timestamp info  
   property :created_at,   DateTime
@@ -345,19 +303,40 @@ inject_into_file 'models/address.rb', %(
   property :updated_at,   DateTime
   property :updated_on,   Date
 ), :after => "DataMapper::Resource\n"
+gitCommit(__LINE__, 'msg')
 
+#generate :migration, "AddAddresstypeToAddress addresstype_id:integer"
+generate :model, "contactInfo type:integer value_1:string value_2:string"
+inject_into_file 'models/contact_info.rb', %(
+  property :created_at,   DateTime
+  property :created_on,   Date
+  property :updated_at,   DateTime
+  property :updated_on,   Date
+  belongs_to              :contact
+), :after => "DataMapper::Resource\n"
+
+gsub_file('models/contact_info.rb', 
+    "property :type, Integer",
+    "property :type,       Enum[ :internet, :email, :fax, :mobile, :phone], :default => :internet")
+
+gitCommit(__LINE__, 'msg')
+generate :controller, "contactInfo"
+generate :admin_page, "contactInfo"
+
+generate :controller, "addresses"
+generate :admin_page, "address"
 gsub_file('models/address.rb', 
           'property :type, Integer', 
-          'property :type, Enum[ :main, :bill_to, :delivery, :other ], :default => :main, :unique_index => :uniqe_address_type')
+          'property :type, Enum[ :main, :bill_to, :delivery, :other ], :default => :main')
 
+gitCommit(__LINE__, 'msg')
 inject_into_file 'models/contact.rb', %(
   has n, :addresses,    :through => Resource
   has n, :contactInfos, :through => Resource
 ), :after => "validates_presence_of :adrNumIndex\n"
 
-rake 'dm:migrate'
-                
-gitCommit(__LINE__, 'm:migrate')
 rake 'dm:auto:upgrade'
+                
+gitCommit(__LINE__, 'dm:auto:upgrade')
 
 puts 'done'
