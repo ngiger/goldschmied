@@ -1,7 +1,7 @@
 # Use it like the following:
 # padrino g project my_project --template /opt/src/goldschmied/scripts/goldschmied_app_template.rb
 $root = File.dirname(File.dirname(__FILE__))
-project :test => :shoulda, :renderer => :haml, :stylesheet => :sass, :script => :jquery, :orm => :datamapper
+project :test => :rspec, :renderer => :haml, :stylesheet => :sass, :script => :jquery, :orm => :datamapper
 generate :plugin, 'will_paginate'
 
 
@@ -41,7 +41,7 @@ create_file ".gitignore", "tmp
 # Add some more stuff
 run_bundler
 gitCommit(__LINE__, 'after run_bundler')
-generate :admin
+generate :admin, "--name goldig --theme blue"
 gitCommit(__LINE__, 'generate :admin')
 
 # bundle install
