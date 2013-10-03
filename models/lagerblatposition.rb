@@ -1,4 +1,4 @@
-class Lagerblattposition
+class LagerblattPosition
   include DataMapper::Resource
   include DataMapper::Validate
 

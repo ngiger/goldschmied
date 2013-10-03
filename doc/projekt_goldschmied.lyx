@@ -232,7 +232,16 @@ address.sortier = row[52]
 \end_layout
 
 \begin_layout Standard
+Kunden, Code = Muba, Wiederverkäufer,Kunde,Ausland,Regional, nurspeichern
+\end_layout
 
+\begin_layout Standard
+Wenige Male pro Jahr für Versand, d.h.
+ Etikettendruck via Auswahl-Feld verwendet
+\end_layout
+
+\begin_layout Standard
+Anzahl Etiketten, Grösse für Etiketten, Filter, CSV-Erstellen
 \end_layout
 
 \end_body
